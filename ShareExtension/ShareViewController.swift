@@ -142,7 +142,7 @@ struct ShareView: View {
 
     private func loadStems() async {
         guard let token = readToken() else { return }
-        guard let apiURL = URL(string: "https://stem.md/api/v1/stems") else { return }
+        guard let apiURL = URL(string: "https://api.stem.md/stems") else { return }
 
         var request = URLRequest(url: apiURL)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -165,7 +165,7 @@ struct ShareView: View {
         error = nil
 
         Task {
-            guard let apiURL = URL(string: "https://stem.md/api/v1/stems/\(selectedStemId)/finds") else { return }
+            guard let apiURL = URL(string: "https://api.stem.md/stems/\(selectedStemId)/finds") else { return }
             var request = URLRequest(url: apiURL)
             request.httpMethod = "POST"
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

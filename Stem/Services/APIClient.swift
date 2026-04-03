@@ -20,7 +20,7 @@ enum APIError: LocalizedError {
 final class APIClient {
     static let shared = APIClient()
 
-    private let baseURL = "https://stem.md"
+    private let baseURL = "https://api.stem.md"
     private let session = URLSession.shared
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -90,49 +90,49 @@ final class APIClient {
     func getFeed(before: String? = nil) async throws -> FeedResponse {
         var query: [String: String] = [:]
         if let before { query["before"] = before }
-        return try await request("GET", path: "/api/v1/feed", query: query)
+        return try await request("GET", path: "/feed", query: query)
     }
 
     // MARK: - Stems
 
     func getMyStems() async throws -> StemsResponse {
-        return try await request("GET", path: "/api/v1/stems")
+        return try await request("GET", path: "/stems")
     }
 
     func createStem(_ body: CreateStemBody) async throws -> CreateStemResponse {
-        return try await request("POST", path: "/api/v1/stems", body: body)
+        return try await request("POST", path: "/stems", body: body)
     }
 
     func getStemDetail(id: String) async throws -> StemDetailResponse {
-        return try await request("GET", path: "/api/v1/stems/\(id)")
+        return try await request("GET", path: "/stems/\(id)")
     }
 
     // MARK: - Finds
 
     func addFind(stemId: String, body: AddFindBody) async throws -> AddFindResponse {
-        return try await request("POST", path: "/api/v1/stems/\(stemId)/finds", body: body)
+        return try await request("POST", path: "/stems/\(stemId)/finds", body: body)
     }
 
     // MARK: - Social
 
     func getUserProfile(username: String) async throws -> UserProfileResponse {
-        return try await request("GET", path: "/api/v1/users/\(username)")
+        return try await request("GET", path: "/users/\(username)")
     }
 
     func followUser(id: String) async throws -> SuccessResponse {
-        return try await request("POST", path: "/api/users/\(id)/follow", body: ["action": "follow"])
+        return try await request("POST", path: "/users/\(id)/follow", body: ["action": "follow"])
     }
 
     func unfollowUser(id: String) async throws -> SuccessResponse {
-        return try await request("POST", path: "/api/users/\(id)/follow", body: ["action": "unfollow"])
+        return try await request("POST", path: "/users/\(id)/follow", body: ["action": "unfollow"])
     }
 
     func followStem(id: String) async throws -> SuccessResponse {
-        return try await request("POST", path: "/api/stems/\(id)/follow", body: ["action": "follow"])
+        return try await request("POST", path: "/stems/\(id)/follow", body: ["action": "follow"])
     }
 
     func unfollowStem(id: String) async throws -> SuccessResponse {
-        return try await request("POST", path: "/api/stems/\(id)/follow", body: ["action": "unfollow"])
+        return try await request("POST", path: "/stems/\(id)/follow", body: ["action": "unfollow"])
     }
 
     // MARK: - Notifications
@@ -140,11 +140,11 @@ final class APIClient {
     func getNotifications(before: String? = nil) async throws -> NotificationsResponse {
         var query: [String: String] = [:]
         if let before { query["before"] = before }
-        return try await request("GET", path: "/api/v1/notifications", query: query)
+        return try await request("GET", path: "/notifications", query: query)
     }
 
     func markNotificationsRead() async throws -> SuccessResponse {
-        return try await request("POST", path: "/api/v1/notifications")
+        return try await request("POST", path: "/notifications")
     }
 }
 
