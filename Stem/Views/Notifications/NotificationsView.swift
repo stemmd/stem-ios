@@ -8,23 +8,30 @@ struct NotificationsView: View {
         NavigationStack {
             ScrollView {
                 if loading && notifications.isEmpty {
-                    ProgressView().padding(.top, 60)
+                    LoadingView()
+                        .padding(.top, 60)
                 } else if notifications.isEmpty {
-                    Text("Nothing here yet. Go explore some stems.")
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(Color("InkLight"))
-                        .padding(.top, 80)
+                    EmptyStateView(
+                        icon: "🔔",
+                        title: "No notifications yet",
+                        message: "Follow some stems and people to get started"
+                    )
                 } else {
                     LazyVStack(spacing: 2) {
                         ForEach(notifications) { n in
-                            NotificationRow(notification: n)
+                            NavigationLink(value: notificationDestination(n)) {
+                                NotificationRow(notification: n)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.horizontal, DS.Spacing.md)
+                    .padding(.top, DS.Spacing.sm)
                 }
             }
+            .background(Color.paper)
             .navigationTitle("Notifications")
+            .stemNavigationDestinations()
             .refreshable { await load() }
         }
         .task { await load() }
@@ -35,9 +42,23 @@ struct NotificationsView: View {
         do {
             let res = try await APIClient.shared.getNotifications()
             notifications = res.notifications
-            try? await APIClient.shared.markNotificationsRead()
+            if res.unreadCount > 0 {
+                _ = try? await APIClient.shared.markNotificationsRead()
+            }
         } catch {}
         loading = false
+    }
+
+    private func notificationDestination(_ n: StemNotification) -> StemNavigation {
+        switch n.type {
+        case .newFollower:
+            return .profile(n.actorUsername)
+        case .stemFollowed, .newFind, .findApproved:
+            if let stemId = n.stemId {
+                return .stemDetail(stemId)
+            }
+            return .profile(n.actorUsername)
+        }
     }
 }
 
@@ -47,44 +68,40 @@ struct NotificationRow: View {
     private var text: String {
         let actor = notification.actorDisplayName ?? "@\(notification.actorUsername)"
         switch notification.type {
-        case "new_follower": return "\(actor) followed you"
-        case "stem_followed": return "\(actor) followed \(notification.stemTitle ?? "your stem")"
-        case "new_find": return "\(actor) added a find to \(notification.stemTitle ?? "your stem")"
-        case "find_approved": return "Your find was approved in \(notification.stemTitle ?? "a stem")"
-        default: return "New notification"
+        case .newFollower: return "\(actor) followed you"
+        case .stemFollowed: return "\(actor) followed \(notification.stemTitle ?? "your stem")"
+        case .newFind: return "\(actor) added a find to \(notification.stemTitle ?? "your stem")"
+        case .findApproved: return "Your find was approved in \(notification.stemTitle ?? "a stem")"
         }
     }
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(Color("PaperDark"))
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Text(String(notification.actorUsername.prefix(1)).uppercased())
-                        .font(.custom("DMMono-Regular", size: 13))
-                        .foregroundStyle(Color("InkMid"))
-                )
+            AvatarView(
+                url: notification.actorAvatarUrl,
+                name: notification.actorDisplayName ?? notification.actorUsername,
+                size: 36
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(text)
-                    .font(.custom("DMSans-Regular", size: 14))
-                    .foregroundStyle(Color("Ink"))
-                Text(notification.createdAt)
-                    .font(.custom("DMMono-Regular", size: 11))
-                    .foregroundStyle(Color("InkLight"))
+                    .font(.body(DS.FontSize.body))
+                    .foregroundStyle(Color.ink)
+                Text(RelativeDate.format(notification.createdAt))
+                    .font(.mono(DS.FontSize.caption))
+                    .foregroundStyle(Color.inkLight)
             }
 
             Spacer()
 
-            if notification.read == 0 {
+            if notification.isUnread {
                 Circle()
-                    .fill(Color("Forest"))
+                    .fill(Color.forest)
                     .frame(width: 8, height: 8)
             }
         }
         .padding(14)
-        .background(notification.read == 0 ? Color("Leaf") : .clear)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .background(notification.isUnread ? Color.leaf : .clear)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
     }
 }

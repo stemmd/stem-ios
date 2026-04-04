@@ -1,0 +1,3 @@
+Welcome to Stem for iOS. This is the first release.
+
+Create stems, save finds, explore what others are into, and share from any app with the Share Extension.

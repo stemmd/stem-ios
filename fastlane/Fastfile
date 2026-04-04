@@ -1,0 +1,44 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    sh("cd .. && xcodegen generate")
+
+    build_number = Time.now.strftime("%Y%m%d%H%M")
+
+    build_app(
+      project: "Stem.xcodeproj",
+      scheme: "Stem",
+      export_method: "app-store",
+      clean: true,
+      xcargs: "CURRENT_PROJECT_VERSION=#{build_number} -allowProvisioningUpdates"
+    )
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Submit to App Store"
+  lane :release do
+    sh("cd .. && xcodegen generate")
+
+    build_number = Time.now.strftime("%Y%m%d%H%M")
+
+    build_app(
+      project: "Stem.xcodeproj",
+      scheme: "Stem",
+      export_method: "app-store",
+      clean: true,
+      xcargs: "CURRENT_PROJECT_VERSION=#{build_number} -allowProvisioningUpdates"
+    )
+
+    upload_to_app_store(
+      force: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false
+    )
+  end
+end

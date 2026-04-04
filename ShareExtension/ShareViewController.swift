@@ -22,6 +22,10 @@ class ShareViewController: UIViewController {
     }
 }
 
+// MARK: - Share View
+
+private let forestColor = Color(UIColor(red: 0.176, green: 0.353, blue: 0.239, alpha: 1)) // #2D5A3D
+
 struct ShareView: View {
     let extensionContext: NSExtensionContext?
 
@@ -41,15 +45,16 @@ struct ShareView: View {
                 if loading {
                     Spacer()
                     ProgressView()
+                        .tint(forestColor)
                     Spacer()
                 } else if saved {
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 48))
-                            .foregroundStyle(Color(hex: "#2D5A3D"))
+                            .foregroundStyle(forestColor)
                         Text("Saved!")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.custom("DMSans-SemiBold", size: 18))
                     }
                     Spacer()
                 } else {
@@ -57,11 +62,11 @@ struct ShareView: View {
                         Section {
                             if !pageTitle.isEmpty {
                                 Text(pageTitle)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.custom("DMSans-SemiBold", size: 14))
                                     .lineLimit(2)
                             }
                             Text(url)
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(.custom("DMMono-Regular", size: 12))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
@@ -69,7 +74,7 @@ struct ShareView: View {
                         Section("Save to stem") {
                             if stems.isEmpty {
                                 Text("No stems found. Create one in the app first.")
-                                    .font(.system(size: 13))
+                                    .font(.custom("DMSans-Regular", size: 13))
                                     .foregroundStyle(.secondary)
                             } else {
                                 Picker("Stem", selection: $selectedStemId) {
@@ -78,18 +83,19 @@ struct ShareView: View {
                                         Text("\(stem.emoji ?? "") \(stem.title)").tag(stem.id)
                                     }
                                 }
+                                .font(.custom("DMSans-Regular", size: 14))
                             }
                         }
 
                         Section("Note (optional)") {
                             TextField("Why is this interesting?", text: $note, axis: .vertical)
-                                .font(.system(size: 14))
+                                .font(.custom("DMSans-Regular", size: 14))
                                 .lineLimit(3...5)
                         }
 
                         if let error {
                             Text(error)
-                                .font(.system(size: 13))
+                                .font(.custom("DMSans-Regular", size: 13))
                                 .foregroundStyle(.red)
                         }
                     }
@@ -104,14 +110,15 @@ struct ShareView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Saving..." : "Save") { save() }
                         .disabled(selectedStemId.isEmpty || saving || saved)
+                        .foregroundStyle(forestColor)
                 }
             }
         }
+        .tint(forestColor)
         .task { await extractURL() }
     }
 
     private func extractURL() async {
-        // Get shared URL from extension context
         guard let items = extensionContext?.inputItems as? [NSExtensionItem] else {
             loading = false
             return
@@ -135,7 +142,6 @@ struct ShareView: View {
             }
         }
 
-        // Fetch user's stems
         await loadStems()
         loading = false
     }
@@ -177,11 +183,15 @@ struct ShareView: View {
             do {
                 let (_, response) = try await URLSession.shared.data(for: request)
                 if let http = response as? HTTPURLResponse, http.statusCode < 300 {
+                    // Success haptic
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
                     saved = true
-                    // Auto-close after a moment
                     try? await Task.sleep(for: .seconds(1))
                     close()
                 } else {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.error)
                     error = "Failed to save. Try again."
                 }
             } catch {
@@ -195,7 +205,6 @@ struct ShareView: View {
         extensionContext?.completeRequest(returningItems: nil)
     }
 
-    /// Read token from shared Keychain (App Group)
     private func readToken() -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -212,7 +221,7 @@ struct ShareView: View {
     }
 }
 
-// MARK: - Local models (lightweight, no dependency on main app)
+// MARK: - Local models (self-contained, no main app dependency)
 
 struct ShareStem: Codable, Identifiable {
     let id: String
@@ -223,20 +232,4 @@ struct ShareStem: Codable, Identifiable {
 
 struct ShareStemsResponse: Codable {
     let stems: [ShareStem]
-}
-
-// MARK: - Color helper
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        let scanner = Scanner(string: hex)
-        var rgb: UInt64 = 0
-        scanner.scanHexInt64(&rgb)
-        self.init(
-            red: Double((rgb >> 16) & 0xFF) / 255,
-            green: Double((rgb >> 8) & 0xFF) / 255,
-            blue: Double(rgb & 0xFF) / 255
-        )
-    }
 }
