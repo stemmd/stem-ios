@@ -14,7 +14,7 @@ struct OnboardingContainerView: View {
                     .tag(0)
                 OnboardingStemView { advance() }
                     .tag(1)
-                OnboardingFindView { advance() }
+                OnboardingArtifactView { advance() }
                     .tag(2)
                 OnboardingCategoriesView(
                     selectedInterests: $selectedInterests,

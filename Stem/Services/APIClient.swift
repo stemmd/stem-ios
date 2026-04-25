@@ -16,6 +16,8 @@ enum APIError: LocalizedError {
     }
 }
 
+struct EmptyBody: Encodable {}
+
 @Observable
 final class APIClient {
     static let shared = APIClient()
@@ -111,10 +113,52 @@ final class APIClient {
         return try await request("GET", path: "/stems/\(id)")
     }
 
-    // MARK: - Finds
+    // MARK: - Artifacts
 
-    func addFind(stemId: String, body: AddFindBody) async throws -> AddFindResponse {
-        return try await request("POST", path: "/stems/\(stemId)/finds", body: body)
+    func addArtifact(stemId: String, body: AddArtifactBody) async throws -> AddArtifactResponse {
+        return try await request("POST", path: "/stems/\(stemId)/artifacts", body: body)
+    }
+
+    func deleteArtifact(stemId: String, artifactId: String) async throws -> SuccessResponse {
+        return try await request("DELETE", path: "/stems/\(stemId)/artifacts/\(artifactId)")
+    }
+
+    func updateArtifactStatus(stemId: String, artifactId: String, status: String) async throws -> SuccessResponse {
+        return try await request("PUT", path: "/stems/\(stemId)/artifacts/\(artifactId)", body: ["status": status])
+    }
+
+    // MARK: - Nodes
+
+    func createNode(stemId: String, title: String, emoji: String?, parentId: String?) async throws -> CreateNodeResponse {
+        return try await request(
+            "POST",
+            path: "/stems/\(stemId)/nodes",
+            body: CreateNodeBody(title: title, emoji: emoji, parentId: parentId)
+        )
+    }
+
+    func updateNode(stemId: String, nodeId: String, title: String, emoji: String?, description: String?) async throws -> SuccessResponse {
+        return try await request(
+            "PUT",
+            path: "/stems/\(stemId)/nodes/\(nodeId)",
+            body: UpdateNodeBody(title: title, emoji: emoji, description: description)
+        )
+    }
+
+    func deleteNode(stemId: String, nodeId: String) async throws -> SuccessResponse {
+        return try await request("DELETE", path: "/stems/\(stemId)/nodes/\(nodeId)")
+    }
+
+    func assignArtifactToNode(stemId: String, nodeId: String, artifactId: String) async throws -> SuccessResponse {
+        return try await request(
+            "POST",
+            path: "/stems/\(stemId)/nodes/\(nodeId)/artifacts",
+            body: ["artifact_id": artifactId]
+        )
+    }
+
+    func removeArtifactFromNode(stemId: String, nodeId: String, artifactId: String) async throws -> SuccessResponse {
+        return try await request("DELETE", path: "/stems/\(stemId)/nodes/\(nodeId)/artifacts/\(artifactId)")
     }
 
     // MARK: - Social
@@ -179,14 +223,6 @@ final class APIClient {
         return try await request("DELETE", path: "/stems/\(id)")
     }
 
-    func deleteFind(stemId: String, findId: String) async throws -> SuccessResponse {
-        return try await request("DELETE", path: "/stems/\(stemId)/finds/\(findId)")
-    }
-
-    func updateFindStatus(stemId: String, findId: String, status: String) async throws -> SuccessResponse {
-        return try await request("PUT", path: "/stems/\(stemId)/finds/\(findId)", body: ["status": status])
-    }
-
     // MARK: - Profile Edit
 
     func updateProfile(body: UpdateProfileBody) async throws -> CurrentUserResponse {
@@ -231,7 +267,7 @@ final class APIClient {
 // MARK: - Response types
 
 struct FeedResponse: Codable {
-    let finds: [Find]
+    let artifacts: [Artifact]
     let hasMore: Bool
 }
 
@@ -259,31 +295,70 @@ struct CreateStemResponse: Codable {
     let username: String
 }
 
-struct AddFindBody: Codable {
+struct AddArtifactBody: Codable {
     let url: String
     let note: String?
     let title: String?
     let description: String?
     let sourceType: String?
+    let nodeId: String?
+
+    init(url: String, note: String? = nil, title: String? = nil, description: String? = nil, sourceType: String? = nil, nodeId: String? = nil) {
+        self.url = url
+        self.note = note
+        self.title = title
+        self.description = description
+        self.sourceType = sourceType
+        self.nodeId = nodeId
+    }
 
     enum CodingKeys: String, CodingKey {
         case url, note, title, description
         case sourceType = "source_type"
+        case nodeId = "node_id"
     }
 }
 
-struct AddFindResponse: Codable {
+struct AddArtifactResponse: Codable {
     let id: String
     let pending: Bool
 }
 
+struct CreateNodeBody: Codable {
+    let title: String
+    let emoji: String?
+    let parentId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title, emoji
+        case parentId = "parent_id"
+    }
+}
+
+struct CreateNodeResponse: Codable {
+    let id: String
+}
+
+struct UpdateNodeBody: Codable {
+    let title: String
+    let emoji: String?
+    let description: String?
+}
+
 struct StemDetailResponse: Codable {
     let stem: Stem
-    let finds: [Find]
+    let artifacts: [Artifact]
+    let nodes: [Node]?
+    let artifactNodes: [ArtifactNode]?
     let followerCount: Int
     let isFollowing: Bool
     let isOwner: Bool
     let categories: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case stem, artifacts, nodes, followerCount, isFollowing, isOwner, categories
+        case artifactNodes = "artifactNodes"
+    }
 }
 
 struct UserProfileResponse: Codable {
@@ -344,6 +419,7 @@ struct CurrentUserResponse: Codable {
 
 struct ExploreResponse: Codable {
     let trending: [Stem]
+    let featured: [Stem]?
     let categories: [CategoryCount]
     let topUsers: [User]
 }

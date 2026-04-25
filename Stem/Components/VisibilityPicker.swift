@@ -54,7 +54,7 @@ struct VisibilityPicker: View {
 
 struct ContributionPicker: View {
     @Binding var value: ContributionMode
-    var label = "Who can suggest finds?"
+    var label = "Who can suggest artifacts?"
 
     var body: some View {
         EnumRadioPicker(label: label, options: [

@@ -85,7 +85,7 @@ struct EditStemView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) { deleteStem() }
             } message: {
-                Text("This will permanently delete the stem and all its finds")
+                Text("This will permanently delete the stem and all its artifacts")
             }
         }
     }

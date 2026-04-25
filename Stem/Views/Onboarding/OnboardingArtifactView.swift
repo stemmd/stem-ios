@@ -1,13 +1,13 @@
 import SwiftUI
 
-struct OnboardingFindView: View {
+struct OnboardingArtifactView: View {
     let onNext: () -> Void
 
     var body: some View {
         VStack(spacing: DS.Spacing.xl) {
             Spacer()
 
-            // Mini find card mockup
+            // Mini artifact card mockup
             VStack(alignment: .leading, spacing: DS.Spacing.sm) {
                 HStack(spacing: 6) {
                     RoundedRectangle(cornerRadius: 3)
@@ -39,11 +39,11 @@ struct OnboardingFindView: View {
             .padding(.horizontal, DS.Spacing.xl)
 
             VStack(spacing: DS.Spacing.sm) {
-                Text("This is a find")
+                Text("This is an artifact")
                     .font(.heading(DS.FontSize.title))
                     .foregroundStyle(Color.ink)
 
-                Text("Articles, videos, tweets, papers, any link you discover along a trail")
+                Text("Articles, videos, tweets, papers, any link or note you want to keep")
                     .font(.body(DS.FontSize.bodyLarge))
                     .foregroundStyle(Color.inkMid)
                     .multilineTextAlignment(.center)

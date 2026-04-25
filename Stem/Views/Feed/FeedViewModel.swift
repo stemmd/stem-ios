@@ -7,14 +7,14 @@ final class FeedViewModel {
     var loading = true
     var error: String?
 
-    private var finds: [Find] = []
+    private var artifacts: [Artifact] = []
 
     func load() async {
         loading = true
         error = nil
         do {
             let res = try await APIClient.shared.getFeed()
-            finds = res.finds
+            artifacts = res.artifacts
             hasMore = res.hasMore
             regroup()
         } catch {
@@ -24,10 +24,10 @@ final class FeedViewModel {
     }
 
     func loadMore() async {
-        guard let last = finds.last?.createdAt else { return }
+        guard let last = artifacts.last?.createdAt else { return }
         do {
             let res = try await APIClient.shared.getFeed(before: last)
-            finds.append(contentsOf: res.finds)
+            artifacts.append(contentsOf: res.artifacts)
             hasMore = res.hasMore
             regroup()
         } catch {
@@ -36,49 +36,49 @@ final class FeedViewModel {
     }
 
     private func regroup() {
-        groupedFeed = Self.groupByTimePeriod(finds)
+        groupedFeed = Self.groupByTimePeriod(artifacts)
     }
 
     // MARK: - Grouping
 
-    static func groupByTimePeriod(_ finds: [Find]) -> [TimePeriodGroup] {
-        var groups: [(String, [Find])] = []
+    static func groupByTimePeriod(_ artifacts: [Artifact]) -> [TimePeriodGroup] {
+        var groups: [(String, [Artifact])] = []
         var currentPeriod = ""
-        var currentFinds: [Find] = []
+        var currentArtifacts: [Artifact] = []
 
-        for find in finds {
-            let period = RelativeDate.timePeriod(for: find.createdAt ?? "")
+        for artifact in artifacts {
+            let period = RelativeDate.timePeriod(for: artifact.createdAt ?? "")
             if period != currentPeriod {
-                if !currentFinds.isEmpty {
-                    groups.append((currentPeriod, currentFinds))
+                if !currentArtifacts.isEmpty {
+                    groups.append((currentPeriod, currentArtifacts))
                 }
                 currentPeriod = period
-                currentFinds = [find]
+                currentArtifacts = [artifact]
             } else {
-                currentFinds.append(find)
+                currentArtifacts.append(artifact)
             }
         }
-        if !currentFinds.isEmpty {
-            groups.append((currentPeriod, currentFinds))
+        if !currentArtifacts.isEmpty {
+            groups.append((currentPeriod, currentArtifacts))
         }
         return groups.map { TimePeriodGroup(period: $0.0, stemGroups: groupByStem($0.1, period: $0.0)) }
     }
 
-    private static func groupByStem(_ finds: [Find], period: String) -> [StemFeedGroup] {
-        var groups: [String: [Find]] = [:]
+    private static func groupByStem(_ artifacts: [Artifact], period: String) -> [StemFeedGroup] {
+        var groups: [String: [Artifact]] = [:]
         var order: [String] = []
 
-        for find in finds {
-            let key = find.stemId ?? find.stemSlug ?? find.id
+        for artifact in artifacts {
+            let key = artifact.stemId ?? artifact.stemSlug ?? artifact.id
             if groups[key] == nil {
                 order.append(key)
                 groups[key] = []
             }
-            groups[key]?.append(find)
+            groups[key]?.append(artifact)
         }
 
         return order.compactMap { key in
-            guard let finds = groups[key], let first = finds.first else { return nil }
+            guard let artifacts = groups[key], let first = artifacts.first else { return nil }
             return StemFeedGroup(
                 stemId: first.stemId ?? key,
                 stemTitle: first.stemTitle ?? "",
@@ -86,7 +86,7 @@ final class FeedViewModel {
                 stemSlug: first.stemSlug ?? "",
                 stemUsername: first.stemUsername ?? "",
                 stemCategory: first.stemCategory,
-                finds: finds,
+                artifacts: artifacts,
                 period: period
             )
         }
@@ -106,7 +106,7 @@ struct StemFeedGroup: Identifiable {
     let stemSlug: String
     let stemUsername: String
     let stemCategory: String?
-    let finds: [Find]
+    let artifacts: [Artifact]
     let period: String
     var id: String { "\(period):\(stemId)" }
 }

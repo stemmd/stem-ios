@@ -6,9 +6,9 @@ struct FeedGroupCard: View {
     let stemSlug: String
     let stemUsername: String
     let stemCategory: String?
-    let finds: [Find]
+    let artifacts: [Artifact]
     var onStemTap: (() -> Void)? = nil
-    var onFindTap: ((Find) -> Void)? = nil
+    var onArtifactTap: ((Artifact) -> Void)? = nil
     var onAuthorTap: (() -> Void)? = nil
 
     var body: some View {
@@ -39,9 +39,9 @@ struct FeedGroupCard: View {
             }
             .buttonStyle(.plain)
 
-            // Find count + share
+            // Count + share
             HStack {
-                Text("\(finds.count) finds")
+                Text(artifacts.count == 1 ? "1 artifact" : "\(artifacts.count) artifacts")
                     .font(.mono(DS.FontSize.tiny))
                     .foregroundStyle(Color.inkLight)
 
@@ -56,12 +56,12 @@ struct FeedGroupCard: View {
             .padding(.horizontal, DS.Spacing.md)
             .padding(.bottom, DS.Spacing.sm)
 
-            // Finds list
-            ForEach(finds) { find in
-                FindCard(find: find, compact: true) {
-                    onFindTap?(find)
+            // Artifacts list
+            ForEach(artifacts) { artifact in
+                ArtifactCard(artifact: artifact, compact: true) {
+                    onArtifactTap?(artifact)
                 }
-                if find.id != finds.last?.id {
+                if artifact.id != artifacts.last?.id {
                     Divider()
                         .padding(.horizontal, DS.Spacing.md)
                 }

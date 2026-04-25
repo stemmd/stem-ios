@@ -17,7 +17,7 @@ struct FeedView: View {
                     EmptyStateView(
                         icon: "🌱",
                         title: "Your feed is quiet",
-                        message: "Follow some stems or people to see finds here"
+                        message: "Follow some stems or people to see artifacts here"
                     )
                 } else {
                     LazyVStack(spacing: DS.Spacing.md) {
@@ -37,14 +37,16 @@ struct FeedView: View {
                                     stemSlug: stemGroup.stemSlug,
                                     stemUsername: stemGroup.stemUsername,
                                     stemCategory: stemGroup.stemCategory,
-                                    finds: stemGroup.finds,
+                                    artifacts: stemGroup.artifacts,
                                     onStemTap: {
                                         navPath.append(StemNavigation.stemDetail(stemGroup.stemId))
                                     },
-                                    onFindTap: { find in
-                                        if let url = URL(string: find.url) {
+                                    onArtifactTap: { artifact in
+                                        if !artifact.isNote, let url = URL(string: artifact.url) {
                                             safariURL = url
                                             Analytics.track("open_link")
+                                        } else {
+                                            navPath.append(StemNavigation.stemDetail(stemGroup.stemId))
                                         }
                                     },
                                     onAuthorTap: {

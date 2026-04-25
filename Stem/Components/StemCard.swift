@@ -24,8 +24,8 @@ struct StemCard: View {
             }
 
             HStack(spacing: DS.Spacing.sm) {
-                if let count = stem.findCount {
-                    Text("\(count) finds")
+                if let count = stem.artifactCount {
+                    Text(count == 1 ? "1 artifact" : "\(count) artifacts")
                         .font(.mono(DS.FontSize.caption))
                         .foregroundStyle(Color.inkLight)
                 }

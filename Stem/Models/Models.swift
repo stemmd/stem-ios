@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Enums
 
@@ -17,8 +18,8 @@ enum ContributionMode: String, Codable, Hashable {
 enum NotificationType: String, Codable, Hashable {
     case newFollower = "new_follower"
     case stemFollowed = "stem_followed"
-    case newFind = "new_find"
-    case findApproved = "find_approved"
+    case newArtifact = "new_artifact"
+    case artifactApproved = "artifact_approved"
 }
 
 enum Appearance: String, CaseIterable {
@@ -32,8 +33,6 @@ enum Appearance: String, CaseIterable {
         }
     }
 }
-
-import SwiftUI
 
 // MARK: - Models
 
@@ -72,7 +71,7 @@ struct Stem: Codable, Identifiable, Hashable {
     let username: String?
     let displayName: String?
     let avatarUrl: String?
-    let findCount: Int?
+    let artifactCount: Int?
     let primaryCategory: String?
 
     enum CodingKeys: String, CodingKey {
@@ -84,14 +83,14 @@ struct Stem: Codable, Identifiable, Hashable {
         case userId = "user_id"
         case displayName = "display_name"
         case avatarUrl = "avatar_url"
-        case findCount = "find_count"
+        case artifactCount = "artifact_count"
         case primaryCategory = "primary_category"
     }
 
     var isBranch: Bool { isGrove == 1 }
 }
 
-struct Find: Codable, Identifiable, Hashable {
+struct Artifact: Codable, Identifiable, Hashable {
     let id: String
     let url: String
     let title: String?
@@ -99,6 +98,7 @@ struct Find: Codable, Identifiable, Hashable {
     let imageUrl: String?
     let faviconUrl: String?
     let note: String?
+    let body: String?
     let sourceType: String?
     let createdAt: String?
     let contributorUsername: String?
@@ -114,7 +114,7 @@ struct Find: Codable, Identifiable, Hashable {
     let contributorAvatarUrl: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, url, title, description, note
+        case id, url, title, description, note, body
         case imageUrl = "image_url"
         case faviconUrl = "favicon_url"
         case sourceType = "source_type"
@@ -129,6 +129,49 @@ struct Find: Codable, Identifiable, Hashable {
         case contributorDisplayName = "contributor_display_name"
         case contributorAvatarUrl = "contributor_avatar_url"
     }
+
+    /// True if this is a user-authored note rather than a link-backed artifact.
+    var isNote: Bool {
+        sourceType == "note" || (url.isEmpty) || url.hasPrefix("stem://note")
+    }
+
+    /// Note content, preferring modern `body` field, falling back to legacy `note`.
+    var noteContent: String? {
+        if let body, !body.isEmpty { return body }
+        if let note, !note.isEmpty { return note }
+        return nil
+    }
+}
+
+struct Node: Codable, Identifiable, Hashable {
+    let id: String
+    let parentId: String?
+    let title: String
+    let description: String?
+    let emoji: String?
+    let position: Int
+    let stemSide: Int
+    let status: String
+    let createdBy: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, emoji, position, status
+        case parentId = "parent_id"
+        case stemSide = "stem_side"
+        case createdBy = "created_by"
+    }
+}
+
+struct ArtifactNode: Codable, Hashable {
+    let artifactId: String
+    let nodeId: String
+    let position: Int
+
+    enum CodingKeys: String, CodingKey {
+        case position
+        case artifactId = "artifact_id"
+        case nodeId = "node_id"
+    }
 }
 
 struct StemNotification: Codable, Identifiable, Hashable {
@@ -136,7 +179,7 @@ struct StemNotification: Codable, Identifiable, Hashable {
     let type: NotificationType
     let actorId: String?
     let stemId: String?
-    let findId: String?
+    let artifactId: String?
     let read: Int
     let createdAt: String
     let actorUsername: String
@@ -145,13 +188,13 @@ struct StemNotification: Codable, Identifiable, Hashable {
     let stemTitle: String?
     let stemSlug: String?
     let stemOwnerUsername: String?
-    let findTitle: String?
+    let artifactTitle: String?
 
     enum CodingKeys: String, CodingKey {
         case id, type, read
         case actorId = "actor_id"
         case stemId = "stem_id"
-        case findId = "find_id"
+        case artifactId = "artifact_id"
         case createdAt = "created_at"
         case actorUsername = "actor_username"
         case actorDisplayName = "actor_display_name"
@@ -159,7 +202,7 @@ struct StemNotification: Codable, Identifiable, Hashable {
         case stemTitle = "stem_title"
         case stemSlug = "stem_slug"
         case stemOwnerUsername = "stem_owner_username"
-        case findTitle = "find_title"
+        case artifactTitle = "artifact_title"
     }
 
     var isUnread: Bool { read == 0 }

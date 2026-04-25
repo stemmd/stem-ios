@@ -17,7 +17,7 @@ struct OnboardingStemView: View {
                 Text("Temples, minimalism, wabi-sabi")
                     .font(.body(DS.FontSize.small))
                     .foregroundStyle(Color.inkMid)
-                Text("12 finds")
+                Text("12 artifacts")
                     .font(.mono(DS.FontSize.caption))
                     .foregroundStyle(Color.inkLight)
             }

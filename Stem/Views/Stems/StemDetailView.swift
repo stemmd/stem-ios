@@ -1,11 +1,27 @@
 import SwiftUI
 
+/// Where focus is currently pointing.
+/// The entire stem stays on screen behind; a focused target "pulls closer" via a zooming card.
+enum FocusTarget: Hashable {
+    case artifact(String)
+    case node(String)
+
+    var matchedID: String {
+        switch self {
+        case .artifact(let id): return "artifact-\(id)"
+        case .node(let id): return "node-\(id)"
+        }
+    }
+}
+
 struct StemDetailView: View {
     let stemId: String
     @State private var vm: StemDetailViewModel
-    @State private var showAddFind = false
+    @State private var focused: FocusTarget?
+    @State private var showAddArtifact = false
     @State private var showEditStem = false
     @State private var safariURL: URL?
+    @Namespace private var focusNamespace
 
     init(stemId: String) {
         self.stemId = stemId
@@ -13,50 +29,55 @@ struct StemDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            if vm.loading && vm.stem == nil {
-                LoadingView()
-                    .padding(.top, 60)
-            } else if let stem = vm.stem {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    headerView(stem)
+        ZStack {
+            // Plant: always visible, fades and softens when something is in focus.
+            scrollContent
+                .blur(radius: focused == nil ? 0 : 10)
+                .scaleEffect(focused == nil ? 1.0 : 0.98)
+                .animation(.spring(response: 0.4, dampingFraction: 0.88), value: focused)
+                .allowsHitTesting(focused == nil)
 
-                    // Finds
-                    if vm.finds.isEmpty {
-                        EmptyStateView(
-                            icon: "🔍",
-                            title: "No finds yet",
-                            message: vm.isOwner ? "Add your first find to get started" : nil
-                        )
-                    } else {
-                        LazyVStack(spacing: 0) {
-                            ForEach(vm.finds) { find in
-                                FindCard(find: find) {
-                                    if let url = URL(string: find.url) {
-                                        safariURL = url
-                                    }
-                                }
-                                if find.id != vm.finds.last?.id {
-                                    Divider()
-                                        .padding(.horizontal, DS.Spacing.md)
-                                }
-                            }
+            // Dim backdrop
+            if focused != nil {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture { dismissFocus() }
+                    .transition(.opacity)
+            }
+
+            // Focused leaf pulled forward
+            if let target = focused {
+                StemFocusLayer(
+                    target: target,
+                    vm: vm,
+                    namespace: focusNamespace,
+                    onDismiss: { dismissFocus() },
+                    onOpenURL: { url in safariURL = url },
+                    onTransferFocus: { newTarget in
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                            focused = newTarget
                         }
+                        Haptic.play(.toggle)
                     }
-                }
-            } else if let error = vm.error {
-                EmptyStateView(icon: "⚠️", title: "Something went wrong", message: error)
+                )
+                .padding(.horizontal, DS.Spacing.md)
+                .padding(.top, DS.Spacing.xl)
+                .padding(.bottom, DS.Spacing.xl)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.9).combined(with: .opacity),
+                    removal: .scale(scale: 0.92).combined(with: .opacity)
+                ))
             }
         }
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { showAddFind = true } label: {
+                Button { showAddArtifact = true } label: {
                     Image(systemName: "plus")
                         .foregroundStyle(Color.forest)
                 }
+                .disabled(focused != nil)
             }
             if let stem = vm.stem {
                 ToolbarItem(placement: .secondaryAction) {
@@ -75,8 +96,8 @@ struct StemDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showAddFind) {
-            AddFindSheet(stemId: stemId) { success in
+        .sheet(isPresented: $showAddArtifact) {
+            AddArtifactSheet(stemId: stemId) { success in
                 if success {
                     Task { await vm.load() }
                 }
@@ -101,12 +122,50 @@ struct StemDetailView: View {
         .task { await vm.load() }
     }
 
+    private func dismissFocus() {
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+            focused = nil
+        }
+        Haptic.play(.toggle)
+    }
+
     @ViewBuilder
-    private func headerView(_ stem: Stem) -> some View {
+    private var scrollContent: some View {
+        ScrollView {
+            if vm.loading && vm.stem == nil {
+                LoadingView()
+                    .padding(.top, 60)
+            } else if let stem = vm.stem {
+                VStack(alignment: .leading, spacing: 0) {
+                    StemHeaderView(stem: stem, vm: vm)
+
+                    StemOverviewView(
+                        vm: vm,
+                        focused: $focused,
+                        namespace: focusNamespace,
+                        onOpenAddArtifact: { showAddArtifact = true }
+                    )
+                    .padding(.top, DS.Spacing.md)
+                    .padding(.bottom, DS.Spacing.xl)
+                }
+            } else if let error = vm.error {
+                EmptyStateView(icon: "⚠️", title: "Something went wrong", message: error)
+            }
+        }
+    }
+}
+
+// MARK: - Header
+
+private struct StemHeaderView: View {
+    let stem: Stem
+    @Bindable var vm: StemDetailViewModel
+
+    var body: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             if let emoji = stem.emoji, !emoji.isEmpty {
                 Text(emoji)
-                    .font(.system(size: 40))
+                    .font(.system(size: 44))
             }
 
             Text(stem.title)
@@ -128,13 +187,13 @@ struct StemDetailView: View {
             }
 
             HStack(spacing: DS.Spacing.md) {
-                NavigationLink(value: StemNavigation.stemFollowers(stemId)) {
-                    Text("\(vm.followerCount) followers")
+                NavigationLink(value: StemNavigation.stemFollowers(stem.id)) {
+                    Text(vm.followerCount == 1 ? "1 follower" : "\(vm.followerCount) followers")
                         .font(.mono(DS.FontSize.caption))
                         .foregroundStyle(Color.forest)
                 }
 
-                Text("\(vm.finds.count) finds")
+                Text(vm.artifacts.count == 1 ? "1 artifact" : "\(vm.artifacts.count) artifacts")
                     .font(.mono(DS.FontSize.caption))
                     .foregroundStyle(Color.inkLight)
 

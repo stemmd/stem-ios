@@ -1,8 +1,15 @@
 import SwiftUI
 
-struct AddFindSheet: View {
+struct AddArtifactSheet: View {
     let stemId: String
+    let nodeId: String?
     let onComplete: (Bool) -> Void
+
+    init(stemId: String, nodeId: String? = nil, onComplete: @escaping (Bool) -> Void) {
+        self.stemId = stemId
+        self.nodeId = nodeId
+        self.onComplete = onComplete
+    }
 
     @Environment(\.dismiss) private var dismiss
     @State private var url = ""
@@ -135,7 +142,7 @@ struct AddFindSheet: View {
                 .padding(DS.Spacing.lg)
             }
             .background(Color.paper)
-            .navigationTitle("Add find")
+            .navigationTitle("Add artifact")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -174,26 +181,26 @@ struct AddFindSheet: View {
         error = nil
         Task {
             do {
-                _ = try await APIClient.shared.addFind(
+                _ = try await APIClient.shared.addArtifact(
                     stemId: stemId,
-                    body: AddFindBody(
+                    body: AddArtifactBody(
                         url: url.trimmingCharacters(in: .whitespaces),
                         note: note.isEmpty ? nil : note,
                         title: ogTitle,
                         description: ogDescription,
-                        sourceType: ogSourceType
+                        sourceType: ogSourceType,
+                        nodeId: nodeId
                     )
                 )
                 Haptic.play(.saved)
-                Analytics.track("add_find")
+                Analytics.track("add_artifact")
                 onComplete(true)
                 dismiss()
             } catch {
                 Haptic.play(.error)
-                self.error = "Couldn't save this find"
+                self.error = "Couldn't save this artifact"
                 saving = false
             }
         }
     }
-
 }

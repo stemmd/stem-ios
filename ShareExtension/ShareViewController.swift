@@ -171,7 +171,7 @@ struct ShareView: View {
         error = nil
 
         Task {
-            guard let apiURL = URL(string: "https://api.stem.md/stems/\(selectedStemId)/finds") else { return }
+            guard let apiURL = URL(string: "https://api.stem.md/stems/\(selectedStemId)/artifacts") else { return }
             var request = URLRequest(url: apiURL)
             request.httpMethod = "POST"
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

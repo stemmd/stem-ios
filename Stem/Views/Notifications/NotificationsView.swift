@@ -53,7 +53,7 @@ struct NotificationsView: View {
         switch n.type {
         case .newFollower:
             return .profile(n.actorUsername)
-        case .stemFollowed, .newFind, .findApproved:
+        case .stemFollowed, .newArtifact, .artifactApproved:
             if let stemId = n.stemId {
                 return .stemDetail(stemId)
             }
@@ -67,11 +67,16 @@ struct NotificationRow: View {
 
     private var text: String {
         let actor = notification.actorDisplayName ?? "@\(notification.actorUsername)"
+        let stem = notification.stemTitle ?? "your stem"
         switch notification.type {
-        case .newFollower: return "\(actor) followed you"
-        case .stemFollowed: return "\(actor) followed \(notification.stemTitle ?? "your stem")"
-        case .newFind: return "\(actor) added a find to \(notification.stemTitle ?? "your stem")"
-        case .findApproved: return "Your find was approved in \(notification.stemTitle ?? "a stem")"
+        case .newFollower:
+            return "\(actor) followed you"
+        case .stemFollowed:
+            return "\(actor) followed \(stem)"
+        case .newArtifact:
+            return "\(actor) added to \(stem)"
+        case .artifactApproved:
+            return "\(stem) accepted your addition"
         }
     }
 
